@@ -21,6 +21,7 @@ const COL_TAG = 1;   // столбец A (тег)
 const COL_COUNT = 2; // столбец B (количество / можно обновлять)
 const COL_URLS = 3;  // столбец C (urls, comma-separated)
 const LAST_COLOR_COL = 4; // подсвечиваем A:D -> 1..4
+const DELETED_LABELS_SHEET_NAME = 'deleted_labels'; // архив удалённых тегов
 /* ====================== */
 
 /**
@@ -511,27 +512,55 @@ function deleteTagsFromKeys(tags) {
 
   const tagSet = new Set(tagsToDelete.map(tag => tag.toLowerCase()));
   const lastRow = keysSheet.getLastRow();
-  let tagsDeleted = 0;
+  const rowsToDelete = [];
+  const rowsToArchive = [];
 
-  for (let row = lastRow; row >= START_ROW_KEYS; row--) {
+  for (let row = START_ROW_KEYS; row <= lastRow; row++) {
     const tag = String(keysSheet.getRange(row, COL_TAG).getValue() || '').trim();
 
     if (tag && tagSet.has(tag.toLowerCase())) {
-      keysSheet.deleteRow(row);
-      tagsDeleted += 1;
+      rowsToDelete.push(row);
+      rowsToArchive.push(keysSheet.getRange(row, COL_TAG, 1, LAST_COLOR_COL).getValues()[0]);
     }
   }
 
-  if (tagsDeleted === 0) {
+  if (rowsToDelete.length === 0) {
     throw new Error('Выбранные теги не найдены в Keys!A2:A.');
+  }
+
+  archiveDeletedLabels_(ss, rowsToArchive);
+
+  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+    keysSheet.deleteRow(rowsToDelete[i]);
   }
 
   finalizeKeysAfterDelete_(keysSheet);
 
   return {
-    tagsDeleted: tagsDeleted,
+    tagsDeleted: rowsToDelete.length,
     dialogData: getDeleteKeysDialogData()
   };
+}
+
+function archiveDeletedLabels_(ss, rows) {
+  const rowsToArchive = Array.isArray(rows) ? rows.filter(row => Array.isArray(row) && row.length) : [];
+
+  if (rowsToArchive.length === 0) {
+    return;
+  }
+
+  const deletedLabelsSheet = ss.getSheetByName(DELETED_LABELS_SHEET_NAME);
+
+  if (!deletedLabelsSheet) {
+    throw new Error('Не найден лист "' + DELETED_LABELS_SHEET_NAME + '".');
+  }
+
+  const normalizedRows = rowsToArchive.map(row => row.slice(0, LAST_COLOR_COL));
+  const startRow = deletedLabelsSheet.getLastRow() + 1;
+
+  deletedLabelsSheet
+    .getRange(startRow, COL_TAG, normalizedRows.length, LAST_COLOR_COL)
+    .setValues(normalizedRows);
 }
 
 function finalizeKeysAfterDelete_(keysSheet) {
