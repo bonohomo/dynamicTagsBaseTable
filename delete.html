@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --line: #d8deea;
+        --line-soft: #e9edf5;
+        --text: #1f2a44;
+        --muted: #667085;
+        --accent: #24d366;
+        --accent-dark: #17b554;
+        --danger: #ef4444;
+        --danger-dark: #dc2626;
+        --tag-existing-bg: #f4f7fb;
+        --tag-existing-border: #d8e1ef;
+        --warning-bg: #fff8e6;
+        --warning-border: #f4d58d;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .page { max-width: 760px; margin: 0 auto; }
+      .topbar { margin-bottom: 16px; }
+      .title { font-size: 22px; font-weight: 700; margin: 0; }
+      .subtitle { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+
+      .cards { display: flex; flex-direction: column; gap: 16px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 4px 12px rgba(16, 24, 40, 0.04);
+      }
+
+      .card-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+      .field { margin-bottom: 14px; }
+      .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+      .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+      input[type="text"] {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 14px;
+        outline: none;
+        background: #fff;
+      }
+
+      input[type="text"]:focus {
+        border-color: #98b8ff;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      }
+
+      .checkbox-list {
+        max-height: 260px;
+        overflow-y: auto;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: #fff;
+        padding: 8px;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+
+      .checkbox-item:hover {
+        background: #f6f9ff;
+      }
+
+      .checkbox-item.hidden {
+        display: none;
+      }
+
+      .checkbox-item input[type="checkbox"] {
+        margin-top: 2px;
+      }
+
+      .checkbox-label {
+        font-size: 14px;
+        word-break: break-word;
+      }
+
+      .tag-panel {
+        border: 1px solid var(--warning-border);
+        background: var(--warning-bg);
+        border-radius: 12px;
+        padding: 12px;
+      }
+
+      .selected-tags-wrap {
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: #fcfdff;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .tag-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 20px; }
+      .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 13px;
+        line-height: 1;
+        background: var(--tag-existing-bg);
+        border: 1px solid var(--tag-existing-border);
+      }
+
+      .tag-chip button {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        color: #4b5563;
+        padding: 0;
+      }
+
+      .tag-chip button:hover {
+        color: #111827;
+      }
+
+      .empty-text, .not-found { color: var(--muted); font-size: 13px; }
+      .not-found { color: #b42318; }
+
+      .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+      .btn { border: none; border-radius: 12px; padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer; }
+      .btn-danger { background: var(--danger); color: #fff; }
+      .btn-danger:hover:not(:disabled) { background: var(--danger-dark); }
+      .btn-light { background: #fff; border: 1px solid var(--line); color: var(--text); }
+      .btn-light:hover:not(:disabled) { background: #f8fafc; }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .status { margin-top: 14px; min-height: 20px; font-size: 13px; }
+      .status.error { color: #b42318; }
+      .status.success { color: #067647; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <h1 class="title">Удаление тегов и курсов</h1>
+        <div class="subtitle">Изменения применяются к листу <b>Keys</b>, затем данные сортируются и синхронизируются.</div>
+      </div>
+
+      <div class="cards">
+        <section class="card">
+          <div class="card-title">Удалить курс из тегов</div>
+          <div class="field">
+            <label class="label" for="courseUrl">Ссылка на курс</label>
+            <input id="courseUrl" type="text" placeholder="https://online.top-academy.ru/education/summer-it-camp" />
+            <div class="hint">В ссылке должен быть фрагмент <b>/education/</b>. Из Keys!C будет удалён ключ курса после этого фрагмента.</div>
+          </div>
+
+          <div class="tag-panel">
+            <div class="label">Теги, присвоенные курсу сейчас</div>
+            <div id="courseTags" class="tag-chips"><span class="empty-text">Введите ссылку на курс</span></div>
+          </div>
+
+          <div class="actions">
+            <button id="deleteCourseBtn" class="btn btn-danger" type="button" disabled>Удалить курс</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">Удалить теги</div>
+          <div class="field">
+            <label class="label">Выбранные теги</label>
+            <div class="selected-tags-wrap">
+              <div id="selectedDeleteTags" class="tag-chips"><span class="empty-text">Пока ничего не выбрано</span></div>
+            </div>
+
+            <label class="label" for="tagSearchInput">Поиск по существующим тегам</label>
+            <input id="tagSearchInput" type="text" placeholder="Начните вводить тег..." />
+
+            <label class="label" style="margin-top: 12px;">Теги для удаления</label>
+            <div id="tagsCheckboxList" class="checkbox-list"></div>
+            <div class="hint">Можно выбрать сразу несколько тегов — отметьте нужные чекбоксы.</div>
+          </div>
+
+          <div class="actions">
+            <button id="deleteTagsBtn" class="btn btn-danger" type="button" disabled>Удалить теги</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="actions">
+        <button id="closeBtn" class="btn btn-light" type="button">Закрыть</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <script>
+      const DIALOG_DATA = <?!= JSON.stringify(dialogData || { availableTags: [], courseTagMap: {} }) ?>;
+      let availableTags = Array.isArray(DIALOG_DATA.availableTags) ? DIALOG_DATA.availableTags : [];
+      let courseTagMap = DIALOG_DATA.courseTagMap || {};
+      let currentCourseKey = '';
+
+      function escapeHtml(str) {
+        return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+      }
+
+      function normalizeCourseKeyFromUrl(value) {
+        const raw = String(value || '').trim();
+        const marker = '/education/';
+        const markerIndex = raw.indexOf(marker);
+        if (markerIndex === -1) return '';
+        let key = raw.slice(markerIndex + marker.length);
+        key = key.split('?')[0].split('#')[0].replace(/\/+$/, '').trim();
+        return key;
+      }
+
+      function setStatus(message, type = '') {
+        const status = document.getElementById('status');
+        status.textContent = message || '';
+        status.className = 'status' + (type ? ' ' + type : '');
+      }
+
+      function renderTagsCheckboxList() {
+        const list = document.getElementById('tagsCheckboxList');
+
+        if (!availableTags.length) {
+          list.innerHTML = '<span class="empty-text">Нет доступных тегов для удаления</span>';
+          updateDeleteTagsButton();
+          return;
+        }
+
+        list.innerHTML = availableTags.map((tag, index) => `
+          <label class="checkbox-item" data-tag="${escapeHtml(tag.toLowerCase())}">
+            <input id="tag-${index}" type="checkbox" class="tag-checkbox" value="${escapeHtml(tag)}" />
+            <span class="checkbox-label">${escapeHtml(tag)}</span>
+          </label>
+        `).join('');
+
+        filterTagsCheckboxList();
+        updateSelectedTagsState();
+      }
+
+      function filterTagsCheckboxList() {
+        const query = document.getElementById('tagSearchInput').value.trim().toLowerCase();
+        const rows = document.querySelectorAll('#tagsCheckboxList .checkbox-item');
+
+        rows.forEach(row => {
+          const tag = row.dataset.tag || '';
+          row.classList.toggle('hidden', query && !tag.includes(query));
+        });
+      }
+
+      function getSelectedTags() {
+        return Array.from(document.querySelectorAll('.tag-checkbox:checked'))
+          .map(checkbox => checkbox.value)
+          .filter(Boolean);
+      }
+
+      function renderCourseLookup() {
+        const value = document.getElementById('courseUrl').value;
+        currentCourseKey = normalizeCourseKeyFromUrl(value);
+        const container = document.getElementById('courseTags');
+        const deleteBtn = document.getElementById('deleteCourseBtn');
+
+        if (!value.trim()) {
+          container.innerHTML = '<span class="empty-text">Введите ссылку на курс</span>';
+          deleteBtn.disabled = true;
+          return;
+        }
+
+        if (!currentCourseKey) {
+          container.innerHTML = '<span class="not-found">В ссылке не найден фрагмент /education/.</span>';
+          deleteBtn.disabled = true;
+          return;
+        }
+
+        const tags = Array.isArray(courseTagMap[currentCourseKey]) ? courseTagMap[currentCourseKey] : [];
+        if (!tags.length) {
+          container.innerHTML = '<span class="not-found">Курс не найден в Keys!C2:C.</span>';
+          deleteBtn.disabled = true;
+          return;
+        }
+
+        container.innerHTML = tags.map(tag => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join('');
+        deleteBtn.disabled = false;
+      }
+
+      function updateSelectedDeleteTags() {
+        const selectedTagsContainer = document.getElementById('selectedDeleteTags');
+        const selected = getSelectedTags();
+
+        if (selected.length === 0) {
+          selectedTagsContainer.innerHTML = '<span class="empty-text">Пока ничего не выбрано</span>';
+          return;
+        }
+
+        selectedTagsContainer.innerHTML = selected.map(tag => `
+          <span class="tag-chip">
+            ${escapeHtml(tag)}
+            <button type="button" data-remove-tag="${escapeHtml(tag)}" title="Убрать из выбора">×</button>
+          </span>
+        `).join('');
+      }
+
+      function updateDeleteTagsButton() {
+        document.getElementById('deleteTagsBtn').disabled = getSelectedTags().length === 0;
+      }
+
+      function updateSelectedTagsState() {
+        updateSelectedDeleteTags();
+        updateDeleteTagsButton();
+      }
+
+      function replaceDialogData(result) {
+        availableTags = Array.isArray(result.availableTags) ? result.availableTags : [];
+        courseTagMap = result.courseTagMap || {};
+        document.getElementById('tagSearchInput').value = '';
+        renderTagsCheckboxList();
+        renderCourseLookup();
+      }
+
+      function setBusy(button, text) {
+        button.disabled = true;
+        button.dataset.originalText = button.textContent;
+        button.textContent = text;
+      }
+
+      function clearBusy(button) {
+        button.textContent = button.dataset.originalText || button.textContent;
+      }
+
+      document.getElementById('courseUrl').addEventListener('input', renderCourseLookup);
+      document.getElementById('tagSearchInput').addEventListener('input', filterTagsCheckboxList);
+      document.getElementById('tagsCheckboxList').addEventListener('change', updateSelectedTagsState);
+      document.getElementById('selectedDeleteTags').addEventListener('click', event => {
+        const button = event.target.closest('button[data-remove-tag]');
+        if (!button) return;
+
+        const tag = button.dataset.removeTag;
+        const checkbox = Array.from(document.querySelectorAll('.tag-checkbox'))
+          .find(item => item.value === tag);
+
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+
+        updateSelectedTagsState();
+      });
+      document.getElementById('closeBtn').addEventListener('click', () => google.script.host.close());
+
+      document.getElementById('deleteCourseBtn').addEventListener('click', () => {
+        if (!currentCourseKey) return;
+        const button = document.getElementById('deleteCourseBtn');
+        setStatus('Удаляю курс...');
+        setBusy(button, 'Удаляю...');
+
+        google.script.run
+          .withSuccessHandler(result => {
+            setStatus('Готово: курс удалён из строк — ' + result.rowsUpdated + '.', 'success');
+            clearBusy(button);
+            replaceDialogData(result.dialogData);
+          })
+          .withFailureHandler(error => {
+            setStatus(error && error.message ? error.message : 'Ошибка при удалении курса.', 'error');
+            clearBusy(button);
+            renderCourseLookup();
+          })
+          .deleteCourseFromKeys(currentCourseKey);
+      });
+
+      document.getElementById('deleteTagsBtn').addEventListener('click', () => {
+        const selected = getSelectedTags();
+        if (!selected.length) return;
+
+        const button = document.getElementById('deleteTagsBtn');
+        setStatus('Удаляю теги...');
+        setBusy(button, 'Удаляю...');
+
+        google.script.run
+          .withSuccessHandler(result => {
+            setStatus('Готово: удалено тегов — ' + result.tagsDeleted + '.', 'success');
+            clearBusy(button);
+            replaceDialogData(result.dialogData);
+          })
+          .withFailureHandler(error => {
+            setStatus(error && error.message ? error.message : 'Ошибка при удалении тегов.', 'error');
+            clearBusy(button);
+            updateSelectedTagsState();
+          })
+          .deleteTagsFromKeys(selected);
+      });
+
+      renderTagsCheckboxList();
+      renderCourseLookup();
+    </script>
+  </body>
+</html>

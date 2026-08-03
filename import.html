@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #status { margin-top: 15px; color: #444; }
+    .success { color: green; font-weight: bold; }
+    .loading { color: #666; }
+  </style>
+</head>
+
+<body>
+
+<h3>Загрузите XLSX-файл для создания новых рубрик</h3>
+
+<input type="file" id="file" accept=".xlsx">
+<br><br>
+
+<button onclick="upload()">Импортировать</button>
+
+<div id="status"></div>
+
+<script>
+function upload() {
+  const file = document.getElementById("file").files[0];
+  if (!file) {
+    alert("Выберите файл");
+    return;
+  }
+
+  const status = document.getElementById("status");
+  status.innerHTML = "<span class='loading'>⏳ Идёт импорт и обработка…</span>";
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const base64 = e.target.result.split(",")[1];
+
+    google.script.run
+      .withSuccessHandler(() => {
+        status.innerHTML = "<span class='success'>✅ Импорт и обработка завершены!</span>";
+        setTimeout(() => google.script.host.close(), 2000);
+      })
+      .withFailureHandler(err => {
+        status.innerHTML = "❌ Ошибка: " + err.message;
+      })
+      .importXLSX(base64, file.name);
+  };
+
+  reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>
