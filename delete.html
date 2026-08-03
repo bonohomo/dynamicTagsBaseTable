@@ -161,7 +161,7 @@
     <div class="page">
       <div class="topbar">
         <h1 class="title">Удаление тегов и курсов</h1>
-        <div class="subtitle">Изменения применяются к листу <b>Keys</b>, затем данные сортируются и синхронизируются.</div>
+        <div class="subtitle">Изменения применяются к листу <b>Keys</b>, удалённые курсы архивируются в <b>deleted_courses</b>, затем данные сортируются и синхронизируются.</div>
       </div>
 
       <div class="cards">
@@ -170,7 +170,7 @@
           <div class="field">
             <label class="label" for="courseUrl">Ссылка на курс</label>
             <input id="courseUrl" type="text" placeholder="https://online.top-academy.ru/education/summer-it-camp" />
-            <div class="hint">В ссылке должен быть фрагмент <b>/education/</b>. Из Keys!C будет удалён ключ курса после этого фрагмента.</div>
+            <div class="hint">В ссылке должен быть фрагмент <b>/education/</b>. Перед удалением ключ курса и его текущие теги будут записаны в deleted_courses!A:B.</div>
           </div>
 
           <div class="tag-panel">
@@ -368,12 +368,12 @@
       document.getElementById('deleteCourseBtn').addEventListener('click', () => {
         if (!currentCourseKey) return;
         const button = document.getElementById('deleteCourseBtn');
-        setStatus('Удаляю курс...');
+        setStatus('Архивирую курс и удаляю его из тегов...');
         setBusy(button, 'Удаляю...');
 
         google.script.run
           .withSuccessHandler(result => {
-            setStatus('Готово: курс удалён из строк — ' + result.rowsUpdated + '.', 'success');
+            setStatus('Готово: курс архивирован и удалён из строк — ' + result.rowsUpdated + '.', 'success');
             clearBusy(button);
             replaceDialogData(result.dialogData);
           })

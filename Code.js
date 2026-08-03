@@ -22,6 +22,7 @@ const COL_COUNT = 2; // столбец B (количество / можно об
 const COL_URLS = 3;  // столбец C (urls, comma-separated)
 const LAST_COLOR_COL = 4; // подсвечиваем A:D -> 1..4
 const DELETED_LABELS_SHEET_NAME = 'deleted_labels'; // архив удалённых тегов
+const DELETED_COURSES_SHEET_NAME = 'deleted_courses'; // архив курсов, удалённых из тегов
 /* ====================== */
 
 /**
@@ -469,6 +470,7 @@ function deleteCourseFromKeys(courseKey) {
   }
 
   const keysData = readKeysSheet(keysSheet);
+  const deletedCourseTags = [];
   let rowsUpdated = 0;
 
   keysData.rows.forEach(row => {
@@ -477,6 +479,7 @@ function deleteCourseFromKeys(courseKey) {
     const filteredUrls = row.urls.filter(url => url !== normalizedCourseKey);
 
     if (filteredUrls.length !== row.urls.length) {
+      deletedCourseTags.push(row.tag);
       row.urls = filteredUrls;
       keysSheet.getRange(row.rowIndex, COL_COUNT).setValue(filteredUrls.length);
       keysSheet.getRange(row.rowIndex, COL_URLS).setValue(filteredUrls.join(', '));
@@ -488,6 +491,7 @@ function deleteCourseFromKeys(courseKey) {
     throw new Error('Курс не найден в Keys!C2:C.');
   }
 
+  archiveDeletedCourse_(ss, normalizedCourseKey, deletedCourseTags);
   finalizeKeysAfterDelete_(keysSheet);
 
   return {
@@ -540,6 +544,28 @@ function deleteTagsFromKeys(tags) {
     tagsDeleted: rowsToDelete.length,
     dialogData: getDeleteKeysDialogData()
   };
+}
+
+function archiveDeletedCourse_(ss, courseKey, tags) {
+  const normalizedCourseKey = String(courseKey || '').trim();
+  const courseTags = Array.isArray(tags) ? tags.map(tag => String(tag || '').trim()).filter(Boolean) : [];
+
+  if (!normalizedCourseKey || courseTags.length === 0) {
+    return;
+  }
+
+  const deletedCoursesSheet = ss.getSheetByName(DELETED_COURSES_SHEET_NAME);
+
+  if (!deletedCoursesSheet) {
+    throw new Error('Не найден лист "' + DELETED_COURSES_SHEET_NAME + '".');
+  }
+
+  const archivedTags = Array.from(new Set(courseTags)).sort((a, b) => a.localeCompare(b, 'ru')).join(', ');
+  const startRow = deletedCoursesSheet.getLastRow() + 1;
+
+  deletedCoursesSheet
+    .getRange(startRow, 1, 1, 2)
+    .setValues([[normalizedCourseKey, archivedTags]]);
 }
 
 function archiveDeletedLabels_(ss, rows) {
